@@ -30,6 +30,24 @@ const PAI_SETTINGS_INITIAL: PaiSettingsData = {
   localPath: "",
 }
 
+// Settings governance — client-safe tier classification
+type SettingTier = "critical" | "operational" | "informational"
+
+const CRITICAL_PREFIXES = ["safety.", "sandbox.policy", "sandbox.timeout_secs"]
+const OPERATIONAL_PREFIXES = ["agent.", "wasm.", "sandbox.memory_limit_mb"]
+
+function classifySetting(key: string): SettingTier {
+  if (CRITICAL_PREFIXES.some(p => key === p || key.startsWith(p))) return "critical"
+  if (OPERATIONAL_PREFIXES.some(p => key === p || key.startsWith(p))) return "operational"
+  return "informational"
+}
+
+const TIER_BADGE: Record<SettingTier, { label: string; variant: string }> = {
+  critical: { label: "Critical", variant: "destructive" },
+  operational: { label: "Operational", variant: "warning" },
+  informational: { label: "Info", variant: "secondary" },
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Setting[]>([])
   const [loading, setLoading] = useState(true)
@@ -113,12 +131,43 @@ export default function SettingsPage() {
 
   const handleSaveEdit = async () => {
     if (!editingKey) return
+
+    const tier = classifySetting(editingKey)
+
+    // Critical guard: require explicit confirmation for security settings
+    if (tier === "critical") {
+      const currentSetting = settings.find(s => s.key === editingKey)
+      const oldVal = currentSetting ? displayValue(currentSetting.value) : "unknown"
+      const confirmed = window.confirm(
+        `You are changing a critical security setting.\n\n` +
+        `This affects the outer security boundary.\n\n` +
+        `Setting: ${editingKey}\n` +
+        `Previous value: ${oldVal}\n` +
+        `New value: ${editValue}\n\n` +
+        `Proceed?`
+      )
+      if (!confirmed) return
+    }
+
     const res = await fetch(`/api/ironclaw/settings/${editingKey}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: editingKey, value: editValue }),
     })
     if (res.ok) {
+      // Log critical settings changes for audit trail
+      if (tier === "critical") {
+        const currentSetting = settings.find(s => s.key === editingKey)
+        await fetch("/api/pai/settings-audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            setting: editingKey,
+            oldValue: currentSetting ? displayValue(currentSetting.value) : "unknown",
+            newValue: editValue,
+          }),
+        }).catch(() => { /* Audit log failure is non-blocking */ })
+      }
       setEditingKey(null)
       setEditValue("")
       await fetchSettings()
@@ -281,7 +330,20 @@ export default function SettingsPage() {
                   <TableBody>
                     {settings.map((setting) => (
                       <TableRow key={setting.key}>
-                        <TableCell className="font-mono text-sm">{setting.key}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          <div className="flex items-center gap-2">
+                            {setting.key}
+                            {(() => {
+                              const tier = classifySetting(setting.key)
+                              const meta = TIER_BADGE[tier]
+                              return tier !== "operational" ? (
+                                <Badge variant={meta.variant as "destructive" | "warning" | "secondary"} className="text-[10px]">
+                                  {meta.label}
+                                </Badge>
+                              ) : null
+                            })()}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           {editingKey === setting.key ? (
                             <div className="flex items-center gap-2">
@@ -304,8 +366,14 @@ export default function SettingsPage() {
                             </div>
                           ) : (
                             <span
-                              className="cursor-pointer hover:text-[#2e7de9]"
-                              onClick={() => startEdit(setting)}
+                              className={classifySetting(setting.key) === "informational"
+                                ? "text-gray-400"
+                                : "cursor-pointer hover:text-[#2e7de9]"}
+                              onClick={() => {
+                                if (classifySetting(setting.key) !== "informational") {
+                                  startEdit(setting)
+                                }
+                              }}
                             >
                               {displayValue(setting.value)}
                             </span>
