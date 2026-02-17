@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
-import type { SSEEvent } from "@/types/ironclaw"
+import type { PAIStreamEvent } from "@/types/pai"
 
 interface UseIronclawSSEOptions {
   threadId?: string
-  onEvent: (event: SSEEvent) => void
+  onEvent: (event: PAIStreamEvent) => void
   enabled?: boolean
 }
 
@@ -33,7 +33,7 @@ export function useIronclawSSE({ threadId, onEvent, enabled = true }: UseIroncla
 
     es.onmessage = (event) => {
       try {
-        const parsed: SSEEvent = JSON.parse(event.data as string)
+        const parsed: PAIStreamEvent = JSON.parse(event.data as string)
         onEventRef.current(parsed)
       } catch {
         // Non-JSON event (heartbeat etc)
