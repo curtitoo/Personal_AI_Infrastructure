@@ -26,7 +26,7 @@ recent_failures=$(find "$LOG_DIR" -name '*.error' -newer "$STATE_FILE" -exec tai
 # New learnings captured since last heartbeat
 learnings=""
 if [[ -d "$HOME/.claude/MEMORY" ]]; then
-  learnings=$(find "$HOME/.claude/MEMORY" -name '*.md' -newer "$STATE_FILE" -printf '%f\n' 2>/dev/null | head -10 || true)
+  learnings=$(find "$HOME/.claude/MEMORY" -name '*.md' -newer "$STATE_FILE" -exec basename {} \; 2>/dev/null | head -10 || true)
 fi
 
 # -- Triage via lightweight Claude session (no tools, no hooks) --

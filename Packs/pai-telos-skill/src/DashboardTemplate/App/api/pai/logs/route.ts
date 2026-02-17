@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { readdir, stat, readFile } from "node:fs/promises"
-import { join } from "node:path"
-import { homedir } from "node:os"
+import { readdir, stat, readFile } from "fs/promises"
+import { join } from "path"
+import { homedir } from "os"
 
 export const dynamic = "force-dynamic"
 
@@ -38,7 +38,7 @@ function parseLine(raw: string, source: string): LogEntry | null {
         const rec = obj as Record<string, unknown>
         return {
           timestamp: String(rec["timestamp"] ?? rec["ts"] ?? rec["time"] ?? new Date().toISOString()),
-          level: String(rec["level"] ?? rec["severity"] ?? "INFO").toUpperCase(),
+          level: String(rec["level"] ?? rec["severity"] ?? "info").toLowerCase(),
           message: String(rec["message"] ?? rec["msg"] ?? trimmed),
           source,
         }
@@ -52,7 +52,7 @@ function parseLine(raw: string, source: string): LogEntry | null {
   const match = LOG_LINE_RE.exec(trimmed)
   if (match) {
     const ts = match[1] ?? new Date().toISOString()
-    const level = match[2] ?? "INFO"
+    const level = (match[2] ?? "info").toLowerCase()
     const msg = match[3] ?? trimmed
     return { timestamp: ts, level, message: msg, source }
   }
@@ -60,13 +60,13 @@ function parseLine(raw: string, source: string): LogEntry | null {
   // Attempt 3: raw text
   return {
     timestamp: new Date().toISOString(),
-    level: "INFO",
+    level: "info",
     message: trimmed,
     source,
   }
 }
 
-/** Read the last N lines of a file without loading the entire buffer into an array first. */
+/** Return the last N lines from a string. */
 function lastNLines(content: string, n: number): string[] {
   const lines = content.split("\n")
   return lines.slice(-n)
