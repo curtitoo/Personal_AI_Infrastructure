@@ -32,7 +32,7 @@ export default function AskPage() {
   const [sseEnabled, setSseEnabled] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Fetch available threads on mount
+  // Phase 3 deferral: chat operations stay on IronClaw proxy until PAI chat API routes are added
   useEffect(() => {
     fetch("/api/ironclaw/chat/threads")
       .then(r => {

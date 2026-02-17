@@ -45,6 +45,7 @@ export default function ExtensionsPage() {
     if (!installName.trim()) return
     setInstalling(true)
     try {
+      // Phase 3 deferral: write operations stay on IronClaw proxy until PAI extensions API routes are added
       const res = await fetch("/api/ironclaw/extensions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
