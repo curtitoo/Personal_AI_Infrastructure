@@ -17,6 +17,9 @@ interface SecurityEvent {
   action_taken: string
 }
 
+/** Public shape — session_id stripped to avoid information disclosure. */
+type SafeSecurityEvent = Omit<SecurityEvent, "session_id">
+
 const SECURITY_DIR = path.join(os.homedir(), ".claude", "MEMORY", "SECURITY")
 
 /** Recursively find all security-*.jsonl files, sorted newest first. */
@@ -48,14 +51,15 @@ export async function GET(request: Request) {
     const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 200)
 
     const filePaths = findSecurityFiles(SECURITY_DIR, limit)
-    const events: SecurityEvent[] = []
+    const events: SafeSecurityEvent[] = []
 
     for (const fp of filePaths) {
       try {
         const raw = fs.readFileSync(fp, "utf-8").trim()
         if (!raw) continue
         const parsed = JSON.parse(raw) as SecurityEvent
-        events.push(parsed)
+        const { session_id: _, ...safeEvent } = parsed
+        events.push(safeEvent)
       } catch {
         // Skip unreadable files
       }

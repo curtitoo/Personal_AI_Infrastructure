@@ -37,8 +37,8 @@ const CRITICAL_PREFIXES = ["safety.", "sandbox.policy", "sandbox.timeout_secs"]
 const OPERATIONAL_PREFIXES = ["agent.", "wasm.", "sandbox.memory_limit_mb"]
 
 function classifySetting(key: string): SettingTier {
-  if (CRITICAL_PREFIXES.some(p => key === p || key.startsWith(p))) return "critical"
-  if (OPERATIONAL_PREFIXES.some(p => key === p || key.startsWith(p))) return "operational"
+  if (CRITICAL_PREFIXES.some(p => key === p || key.startsWith(p + "."))) return "critical"
+  if (OPERATIONAL_PREFIXES.some(p => key === p || key.startsWith(p + "."))) return "operational"
   return "informational"
 }
 

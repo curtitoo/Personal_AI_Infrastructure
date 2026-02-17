@@ -12,10 +12,10 @@ const OPERATIONAL_PREFIXES = ["agent.", "wasm.", "sandbox.memory_limit_mb"]
 
 /** Classify an IronClaw setting key into its governance tier. */
 export function classifySetting(key: string): SettingTier {
-  if (CRITICAL_PREFIXES.some(p => key === p || key.startsWith(p + ".") || key.startsWith(p))) {
+  if (CRITICAL_PREFIXES.some(p => key === p || key.startsWith(p + "."))) {
     return "critical"
   }
-  if (OPERATIONAL_PREFIXES.some(p => key === p || key.startsWith(p + ".") || key.startsWith(p))) {
+  if (OPERATIONAL_PREFIXES.some(p => key === p || key.startsWith(p + "."))) {
     return "operational"
   }
   return "informational"
